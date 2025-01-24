@@ -66,6 +66,16 @@ app.post('/products', async (req, res) => {
   }
 });
 
+app.get('/products', async (req, res) => {
+  try {
+    const products = await Product.find();
+    res.status(200).json(products);
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    res.status(500).json({ message: error.message });
+  }
+ });
+
 // เปิดใช้งานเซิร์ฟเวอร์
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
