@@ -2,6 +2,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
+const User = require('./models/user');
+const Product = require('./models/product');
 
 const app = express();
 app.use(cors());
@@ -15,14 +17,6 @@ mongoose
   })
   .then(() => console.log('Connected to MongoDB Atlas'))
   .catch((err) => console.error('Error connecting to MongoDB:', err));
-
-// สร้าง Schema และ Model สำหรับ User
-const UsersSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true }, // รหัสผ่านต้องถูกแฮชไว้
-});
-
-const User = mongoose.model('users', UsersSchema);
 
 // API สำหรับตรวจสอบการเข้าสู่ระบบ
 app.post('/login', async (req, res) => {
@@ -50,10 +44,26 @@ app.post('/login', async (req, res) => {
   });
   
   
-
 // เพิ่มเส้นทาง root
 app.get('/', (req, res) => {
   res.send('Hello, World!');
+});
+
+// server.js
+app.post('/products', async (req, res) => {
+  console.log('Request body:', req.body); // เพิ่มบรรทัดนี้
+  try {
+    const { lotDate, cost } = req.body;
+    const product = new Product({
+      lotDate,
+      cost
+    });
+    await product.save();
+    res.status(201).json(product);
+  } catch (error) {
+    console.error('Server error:', error);
+    res.status(500).json({ message: error.message });
+  }
 });
 
 // เปิดใช้งานเซิร์ฟเวอร์
