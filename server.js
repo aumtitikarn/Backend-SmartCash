@@ -207,6 +207,41 @@ app.post('/addproducts/:productId', upload.single('image'), async (req, res) => 
   }
 });
 
+// เพิ่ม endpoint สำหรับดึงข้อมูลสินค้าในล็อตที่ระบุ
+app.get('/products/:productId', async (req, res) => {
+  try {
+    const { productId } = req.params;
+    
+    // ค้นหาล็อตสินค้าตาม ID
+    const product = await Product.findById(productId);
+    
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบล็อตสินค้า'
+      });
+    }
+
+    // ส่งข้อมูลล็อตและรายการสินค้ากลับไป
+    res.status(200).json({
+      success: true,
+      data: {
+        lotDate: product.lotDate,
+        cost: product.cost,
+        listProduct: product.listProduct
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล'
+    });
+  }
+});
+
+
 // Root route
 app.get('/', (req, res) => {
   res.send('Hello, World!');
