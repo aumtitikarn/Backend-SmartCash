@@ -10,38 +10,36 @@ const User = require('./models/user');
 const app = express();
 app.use(cors());
 app.use(express.json());
-const config = {
-  mongoURI: "mongodb+srv://aumtitikarn003:16250734925Aum@digitechspace.woy4von.mongodb.net/SmartCash",
-  port: 5000,
-  baseUrl: 'https://backend-smart-cash.vercel.app'
-};
-// MongoDB connection
-const mongoURI = "mongodb+srv://aumtitikarn003:16250734925Aum@digitechspace.woy4von.mongodb.net/SmartCash";
-if (!mongoURI) {
-  console.error('MONGODB_URI is not defined');
-  process.exit(1);
-}
+// MongoDB Configuration
+const mongoURI = 'mongodb+srv://aumtitikarn003:16250734925Aum@digitechspace.woy4von.mongodb.net/SmartCash?retryWrites=true&w=majority';
 
+// GridFS setup
 let gfs;
-const connect = async () => {
+const connectDB = async () => {
   try {
-    const client = await MongoClient.connect(config.mongoURI);
+    // Connect to MongoDB with Mongoose
+    await mongoose.connect(mongoURI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log('Connected to MongoDB Atlas');
+
+    // Setup GridFS
+    const client = await MongoClient.connect(mongoURI);
     const db = client.db();
     gfs = new GridFSBucket(db, {
       bucketName: 'uploads'
     });
     console.log('GridFS initialized');
-    
-    // Connect mongoose
-    await mongoose.connect(config.mongoURI);
-    console.log('Mongoose connected');
-  } catch (error) {
-    console.error('Database connection error:', error);
+
+  } catch (err) {
+    console.error('Error connecting to MongoDB:', err);
     process.exit(1);
   }
 };
 
-connect();
+connectDB();
+
 
 // Multer configuration
 const storage = multer.memoryStorage();
@@ -357,6 +355,6 @@ app.use((err, req, res, next) => {
 });
 
 
-// เปิดใช้งานเซิร์ฟเวอร์
-const PORT =  5000;
-app.listen(config.port, () => console.log(`Server running on port ${config.port}`));
+// Server startup
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
