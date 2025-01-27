@@ -1,17 +1,40 @@
 const mongoose = require('mongoose');
 
 const ListProductSchema = new mongoose.Schema({
- name: { type: String, required: true },
- category: { type: String, required: true }, 
- price: { type: Number, required: true },
- image: { type: String },
- barcode: { type: String, required: true }
+  name: { 
+    type: String, 
+    required: true 
+  },
+  category: { 
+    type: String, 
+    required: true 
+  },
+  price: { 
+    type: Number, 
+    required: true 
+  },
+  image: { 
+    type: String,  // สำหรับเก็บ path หรือ URL ของรูปภาพ
+    required: false 
+  },
+  barcode: { 
+    type: String,
+    required: false  // เปลี่ยนเป็น false เพราะอาจจะไม่มีบาร์โค้ด
+  }
 });
 
 const ProductSchema = new mongoose.Schema({
- lotDate: { type: Date, required: true },
- cost: { type: Number, required: true },
- listProduct: [ListProductSchema]
+  lotDate: { 
+    type: Date, 
+    required: true 
+  },
+  cost: { 
+    type: Number, 
+    required: true 
+  },
+  listProduct: [ListProductSchema]  // Array ของสินค้า
+}, {
+  timestamps: true  // เพิ่ม createdAt และ updatedAt
 });
 
 module.exports = mongoose.model('Product', ProductSchema);
