@@ -19,7 +19,7 @@ const ListProductSchema = new mongoose.Schema({
   },
   quantity: { 
     type: Number, 
-    required: true 
+    required: true ,
   },
   barcode: { 
     type: String,
