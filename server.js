@@ -215,7 +215,15 @@ app.post('/addproducts/:productId', upload.single('image'), async (req, res) => 
       });
     }
 
-    const listProduct = {
+    // อัปเดตสินค้าที่มีอยู่เดิมให้มี quantity
+    const updatedListProduct = product.listProduct.map(item => ({
+      ...item.toObject(),
+      quantity: item.quantity || 0
+    }));
+
+    product.listProduct = updatedListProduct;
+
+    const newListProduct = {
       name: productName,
       category,
       price: Number(price),
@@ -223,7 +231,7 @@ app.post('/addproducts/:productId', upload.single('image'), async (req, res) => 
       quantity: Number(quantity),
     };
 
-    product.listProduct.push(listProduct);
+    product.listProduct.push(newListProduct);
     await product.save();
 
     res.status(201).json({
