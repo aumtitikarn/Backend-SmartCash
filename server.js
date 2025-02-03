@@ -185,9 +185,14 @@ app.get('/products', async (req, res) => {
 });
 
 app.post('/addproducts/:productId', upload.single('image'), async (req, res) => {
-  console.log('Incoming Request Body:', req.body);
-  console.log('Incoming File:', req.file);
-  
+  console.log('Request received at:', new Date().toISOString());
+  console.log('Request body:', req.body);
+  console.log('Request file:', req.file ? {
+    originalname: req.file.originalname,
+    mimetype: req.file.mimetype,
+    size: req.file.size
+  } : 'No file');
+
   let uploadStream;
   try {
     // Validate input data
@@ -211,13 +216,6 @@ app.post('/addproducts/:productId', upload.single('image'), async (req, res) => 
     let imageId = null;
 
     if (req.file) {
-      // Log file details
-      console.log('File Details:', {
-        originalname: req.file.originalname,
-        mimetype: req.file.mimetype,
-        size: req.file.size
-      });
-
       const filename = `${Date.now()}-${req.file.originalname}`;
       uploadStream = gfs.openUploadStream(filename, {
         contentType: req.file.mimetype
@@ -248,7 +246,7 @@ app.post('/addproducts/:productId', upload.single('image'), async (req, res) => 
     product.listProduct.push(listProduct);
     const savedProduct = await product.save();
 
-    console.log('Product saved successfully:', savedProduct);
+    console.log('Product saved successfully at:', new Date().toISOString());
 
     res.status(201).json({
       success: true,
@@ -257,7 +255,8 @@ app.post('/addproducts/:productId', upload.single('image'), async (req, res) => 
     });
 
   } catch (error) {
-    console.error('Complete Upload Error:', error);
+    console.error('Complete Upload Error at:', new Date().toISOString());
+    console.error('Error details:', error);
 
     if (uploadStream && uploadStream.id) {
       try {
