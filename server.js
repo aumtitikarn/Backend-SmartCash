@@ -241,6 +241,45 @@ app.get('/products/:productId', async (req, res) => {
   }
 });
 
+app.get('/products/barcode/:barcode', async (req, res) => {
+  try {
+    const { barcode } = req.params;
+    
+    // ค้นหาสินค้าใน listProduct ของทุกล็อต
+    const products = await Product.find({
+      "listProduct._id": barcode
+    });
+    
+    if (!products || products.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบสินค้า'
+      });
+    }
+
+    // หาสินค้าที่ตรงกับ barcode
+    const product = products[0];
+    const item = product.listProduct.find(item => item._id.toString() === barcode);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        name: item.name,
+        category: item.category,
+        price: item.price,
+        image: item.image,
+        barcode: item._id
+      }
+    });
+
+  } catch (error) {
+    console.error('Error finding product:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการค้นหาสินค้า'
+    });
+  }
+});
 
 // Root route
 app.get('/', (req, res) => {
