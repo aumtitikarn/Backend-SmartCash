@@ -134,6 +134,46 @@ app.post('/products', async (req, res) => {
   }
 });
 
+app.patch('/products/updatebarcode/:productId', async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { productItemId } = req.body;
+
+    const product = await Product.findOneAndUpdate(
+      { 
+        _id: productId,
+        'listProduct._id': productItemId 
+      },
+      {
+        $set: {
+          'listProduct.$.barcode': productItemId // ใช้ _id ของ listProduct เป็น barcode
+        }
+      },
+      { new: true }
+    );
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบสินค้าที่ต้องการอัพเดต'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'อัพเดตบาร์โค้ดเรียบร้อยแล้ว',
+      data: product
+    });
+
+  } catch (error) {
+    console.error('Error updating barcode:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการอัพเดตบาร์โค้ด'
+    });
+  }
+});
+
 app.get('/products', async (req, res) => {
   try {
     const products = await Product.find().sort({ lotDate: -1 });
