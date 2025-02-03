@@ -185,11 +185,75 @@ app.get('/products', async (req, res) => {
 });
 
 // เพิ่มสินค้าพร้อมรูปภาพ
+// app.post('/addproducts/:productId', upload.single('image'), async (req, res) => {
+//   let uploadStream;
+//   try {
+//     const { productId } = req.params;
+//     const { productName, category, price, quantity } = req.body;
+
+//     const product = await Product.findById(productId);
+//     if (!product) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'ไม่พบล็อตสินค้า'
+//       });
+//     }
+
+//     let imageId = null;
+
+//     if (req.file) {
+//       const filename = `${Date.now()}-${req.file.originalname}`;
+//       uploadStream = gfs.openUploadStream(filename, {
+//         contentType: req.file.mimetype
+//       });
+//       imageId = uploadStream.id;
+
+//       await new Promise((resolve, reject) => {
+//         uploadStream.on('finish', resolve);
+//         uploadStream.on('error', reject);
+//         uploadStream.end(req.file.buffer);
+//       });
+//     }
+
+//     const listProduct = {
+//       name: productName,
+//       category,
+//       price: Number(price),
+//       image: imageId,
+//       quantity: Number(quantity),
+//     };
+
+//     product.listProduct.push(listProduct);
+//     await product.save();
+
+//     res.status(201).json({
+//       success: true,
+//       message: 'เพิ่มสินค้าสำเร็จ',
+//       data: product
+//     });
+
+//   } catch (error) {
+//     if (uploadStream && uploadStream.id) {
+//       try {
+//         await gfs.delete(uploadStream.id);
+//       } catch (deleteError) {
+//         console.error('Error deleting failed upload:', deleteError);
+//       }
+//     }
+//     console.error('Upload error:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: error.message || 'เกิดข้อผิดพลาดในการอัพโหลด'
+//     });
+//   }
+// });
+
+// แก้ไขในส่วนของ backend ตรงการเพิ่มสินค้า
 app.post('/addproducts/:productId', upload.single('image'), async (req, res) => {
   let uploadStream;
   try {
     const { productId } = req.params;
-    const { productName, category, price, quantity } = req.body;
+    const { productName, category, price, quantity } = req.body; // เพิ่ม quantity
 
     const product = await Product.findById(productId);
     if (!product) {
@@ -215,12 +279,13 @@ app.post('/addproducts/:productId', upload.single('image'), async (req, res) => 
       });
     }
 
+    // แก้ไขส่วนของการสร้าง listProduct object
     const listProduct = {
       name: productName,
       category,
       price: Number(price),
+      quantity: Number(quantity), // เพิ่ม quantity
       image: imageId,
-      quantity: Number(quantity),
     };
 
     product.listProduct.push(listProduct);
