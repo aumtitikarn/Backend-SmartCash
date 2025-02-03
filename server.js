@@ -189,7 +189,7 @@ app.post('/addproducts/:productId', upload.single('image'), async (req, res) => 
   let uploadStream;
   try {
     const { productId } = req.params;
-    const { productName, category, price } = req.body;
+    const { productName, category, price, quantity } = req.body;
 
     const product = await Product.findById(productId);
     if (!product) {
@@ -219,7 +219,8 @@ app.post('/addproducts/:productId', upload.single('image'), async (req, res) => 
       name: productName,
       category,
       price: Number(price),
-      image: imageId
+      image: imageId,
+      quantity: Number(quantity),
     };
 
     product.listProduct.push(listProduct);

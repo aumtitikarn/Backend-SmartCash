@@ -17,6 +17,10 @@ const ListProductSchema = new mongoose.Schema({
     type: String,  // สำหรับเก็บ path หรือ URL ของรูปภาพ
     required: false 
   },
+  quantity: { 
+    type: Number, 
+    required: true 
+  },
   barcode: { 
     type: String,
     required: false  // เปลี่ยนเป็น false เพราะอาจจะไม่มีบาร์โค้ด
