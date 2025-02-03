@@ -184,27 +184,13 @@ app.get('/products', async (req, res) => {
   }
 });
 
+// เพิ่มสินค้าพร้อมรูปภาพ
 app.post('/addproducts/:productId', upload.single('image'), async (req, res) => {
-  console.log('Request received at:', new Date().toISOString());
-  console.log('Request body:', req.body);
-  console.log('Request file:', req.file ? {
-    originalname: req.file.originalname,
-    mimetype: req.file.mimetype,
-    size: req.file.size
-  } : 'No file');
-
   let uploadStream;
   try {
-    // Validate input data
-    const { productName, category, price, quantity } = req.body;
-    if (!productName || !category || !price || !quantity) {
-      return res.status(400).json({
-        success: false,
-        message: 'กรุณากรอกข้อมูลให้ครบถ้วน'
-      });
-    }
-
     const { productId } = req.params;
+    const { productName, category, price, quantity } = req.body;
+
     const product = await Product.findById(productId);
     if (!product) {
       return res.status(404).json({
@@ -223,14 +209,8 @@ app.post('/addproducts/:productId', upload.single('image'), async (req, res) => 
       imageId = uploadStream.id;
 
       await new Promise((resolve, reject) => {
-        uploadStream.on('finish', () => {
-          console.log('Image upload finished successfully');
-          resolve();
-        });
-        uploadStream.on('error', (error) => {
-          console.error('Image upload error:', error);
-          reject(error);
-        });
+        uploadStream.on('finish', resolve);
+        uploadStream.on('error', reject);
         uploadStream.end(req.file.buffer);
       });
     }
@@ -244,20 +224,15 @@ app.post('/addproducts/:productId', upload.single('image'), async (req, res) => 
     };
 
     product.listProduct.push(listProduct);
-    const savedProduct = await product.save();
-
-    console.log('Product saved successfully at:', new Date().toISOString());
+    await product.save();
 
     res.status(201).json({
       success: true,
       message: 'เพิ่มสินค้าสำเร็จ',
-      data: savedProduct
+      data: product
     });
 
   } catch (error) {
-    console.error('Complete Upload Error at:', new Date().toISOString());
-    console.error('Error details:', error);
-
     if (uploadStream && uploadStream.id) {
       try {
         await gfs.delete(uploadStream.id);
@@ -265,7 +240,7 @@ app.post('/addproducts/:productId', upload.single('image'), async (req, res) => 
         console.error('Error deleting failed upload:', deleteError);
       }
     }
-
+    console.error('Upload error:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'เกิดข้อผิดพลาดในการอัพโหลด'
