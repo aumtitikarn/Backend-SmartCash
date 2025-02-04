@@ -15,7 +15,7 @@ const ListProductSchema = new mongoose.Schema({
   },
   image: { 
     type: String,  // สำหรับเก็บ path หรือ URL ของรูปภาพ
-    required: false 
+    required: true
   },
   quantity: { 
     type: Number, 
