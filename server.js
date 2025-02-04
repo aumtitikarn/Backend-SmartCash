@@ -91,30 +91,63 @@ app.get('/images/:id', async (req, res) => {
 //เพิ่มข้อมูลตะกร้าสินค้า
 app.post('/orders', async (req, res) => {
   try {
+    console.log('Received data:', req.body); // Log incoming data
+    
     const { items, totalAmount } = req.body;
     
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid items data'
+      });
+    }
+
+    // Transform the items to match the schema
+    const transformedItems = items.map(item => ({
+      productName: item.name,
+      quantity: item.quantity,
+      price: item.price,
+      category: item.category,
+      barcode: item.barcode
+    }));
+
+    console.log('Transformed items:', transformedItems); // Log transformed data
+
     const order = new Order({
-      items: items.map(item => ({
-        productName: item.name,
-        quantity: item.quantity,
-        price: item.price,
-        category: item.category,
-        barcode: item.barcode
-      })),
+      items: transformedItems,
       totalAmount
     });
 
+    console.log('Order before save:', order); // Log order object
+
     const savedOrder = await order.save();
     
+    console.log('Saved order:', savedOrder); // Log saved order
+
+    // Clear cart items from AsyncStorage after successful save
     res.status(201).json({
       success: true,
       data: savedOrder
     });
   } catch (error) {
-    console.error('Error creating order:', error);
+    console.error('Detailed error:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
+    
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        error: 'ข้อมูลไม่ถูกต้องตามรูปแบบที่กำหนด',
+        details: error.message
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      error: 'ไม่สามารถบันทึกคำสั่งซื้อได้'
+      error: 'ไม่สามารถบันทึกคำสั่งซื้อได้',
+      details: error.message
     });
   }
 });
