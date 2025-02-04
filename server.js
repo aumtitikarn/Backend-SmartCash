@@ -7,6 +7,7 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const Product = require('./models/product');
 const User = require('./models/user');
+const Order = require('../models/Order');
 
 const app = express();
 app.use(cors());
@@ -86,6 +87,38 @@ app.get('/images/:id', async (req, res) => {
     });
   }
 });
+
+//เพิ่มข้อมูลตะกร้าสินค้า
+app.post('/orders', async (req, res) => {
+  try {
+    const { items, totalAmount } = req.body;
+    
+    const order = new Order({
+      items: items.map(item => ({
+        productName: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        category: item.category,
+        barcode: item.barcode
+      })),
+      totalAmount
+    });
+
+    const savedOrder = await order.save();
+    
+    res.status(201).json({
+      success: true,
+      data: savedOrder
+    });
+  } catch (error) {
+    console.error('Error creating order:', error);
+    res.status(500).json({
+      success: false,
+      error: 'ไม่สามารถบันทึกคำสั่งซื้อได้'
+    });
+  }
+});
+
 
 // Login endpoint (your working version)
 app.post('/login', async (req, res) => {
