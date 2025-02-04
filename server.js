@@ -91,52 +91,74 @@ app.get('/images/:id', async (req, res) => {
 //เพิ่มข้อมูลตะกร้าสินค้า
 app.post('/orders', async (req, res) => {
   try {
-    console.log('Received data:', req.body); // Log incoming data
-    
+    console.log('Received data:', req.body);
+
     const { items, totalAmount } = req.body;
-    
+
     if (!items || !Array.isArray(items) || items.length === 0) {
+      console.error('Invalid items data:', items);
       return res.status(400).json({
         success: false,
         error: 'Invalid items data'
       });
     }
 
-    // Transform the items to match the schema
-    const transformedItems = items.map(item => ({
-      productName: item.name,
-      quantity: item.quantity,
-      price: item.price,
-      image: item.image,
-      category: item.category,
-      barcode: item.barcode
-    }));
+    // Transform items and validate all required fields
+    const transformedItems = items.map((item, index) => {
+      // Check all required fields
+      const requiredFields = ['name', 'quantity', 'price', 'category', 'barcode', 'image'];
+      const missingFields = requiredFields.filter(field => !item[field]);
 
-    console.log('Transformed items:', transformedItems); // Log transformed data
+      if (missingFields.length > 0) {
+        throw new Error(`Missing required fields: ${missingFields.join(', ')} in item ${index + 1}`);
+      }
 
+      if (item.quantity < 1) {
+        throw new Error(`Invalid quantity for item ${index + 1}: ${item.name}`);
+      }
+
+      return {
+        productName: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        category: item.category,
+        barcode: item.barcode,
+        image: item.image
+      };
+    });
+
+    console.log('Transformed items:', transformedItems);
+
+    // Create and save order
     const order = new Order({
       items: transformedItems,
       totalAmount
     });
 
-    console.log('Order before save:', order); // Log order object
+    console.log('Order before save:', order);
 
     const savedOrder = await order.save();
-    
-    console.log('Saved order:', savedOrder); // Log saved order
+    console.log('Order saved successfully:', savedOrder._id);
 
-    // Clear cart items from AsyncStorage after successful save
     res.status(201).json({
       success: true,
       data: savedOrder
     });
+
   } catch (error) {
-    console.error('Detailed error:', {
+    console.error('Error details:', {
       message: error.message,
-      name: error.name,
-      stack: error.stack
+      stack: error.stack,
+      name: error.name
     });
-    
+
+    if (error.message.includes('Missing required fields')) {
+      return res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    }
+
     if (error.name === 'ValidationError') {
       return res.status(400).json({
         success: false,
@@ -144,7 +166,7 @@ app.post('/orders', async (req, res) => {
         details: error.message
       });
     }
-    
+
     res.status(500).json({
       success: false,
       error: 'ไม่สามารถบันทึกคำสั่งซื้อได้',
@@ -152,7 +174,6 @@ app.post('/orders', async (req, res) => {
     });
   }
 });
-
 
 // Login endpoint (your working version)
 app.post('/login', async (req, res) => {

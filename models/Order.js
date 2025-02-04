@@ -14,17 +14,17 @@ const orderItemSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  image: { 
-    type: String,  // สำหรับเก็บ path หรือ URL ของรูปภาพ
-    required: false 
-  },
   category: {
     type: String,
     required: true
   },
   barcode: {
     type: String,
-    required: true
+    required: true  // เปลี่ยนเป็น required
+  },
+  image: {
+    type: String,
+    required: true  // เปลี่ยนเป็น required
   }
 });
 
@@ -43,6 +43,8 @@ const orderSchema = new mongoose.Schema({
     enum: ['pending', 'completed', 'cancelled'],
     default: 'completed'
   }
+}, {
+  timestamps: true
 });
 
 module.exports = mongoose.model('Order', orderSchema);
