@@ -107,6 +107,7 @@ app.post('/orders', async (req, res) => {
       productName: item.name,
       quantity: item.quantity,
       price: item.price,
+      image: item.image,
       category: item.category,
       barcode: item.barcode
     }));

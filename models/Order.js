@@ -14,6 +14,10 @@ const orderItemSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  image: { 
+    type: String,  // สำหรับเก็บ path หรือ URL ของรูปภาพ
+    required: false 
+  },
   category: {
     type: String,
     required: true
