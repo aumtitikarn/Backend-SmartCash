@@ -607,6 +607,41 @@ app.put('/users/:userId', async (req, res) => {
   }
 });
 
+app.put('/products/:productId', async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { lotDate, cost } = req.body;
+
+    const product = await Product.findById(productId);
+    
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบล็อตสินค้า'
+      });
+    }
+
+    // อัพเดตข้อมูล
+    product.lotDate = lotDate;
+    product.cost = Number(cost);
+    
+    await product.save();
+
+    res.json({
+      success: true,
+      message: 'อัพเดตล็อตสินค้าสำเร็จ',
+      data: product
+    });
+
+  } catch (error) {
+    console.error('Error updating product:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการอัพเดตข้อมูล'
+    });
+  }
+});
+
 
 // Server startup
 const PORT = process.env.PORT || 5000;
