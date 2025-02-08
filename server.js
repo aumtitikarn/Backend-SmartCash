@@ -538,8 +538,8 @@ app.get('/users/:userId', async (req, res) => {
       success: true,
       data: {
         email: user.email,
-        productId: user.productId,
-        productName: user.productName,
+        ShopName: user.ShopName,
+        ShopCode: user.ShopCode,
         employees: user.employees
       }
     });
@@ -555,7 +555,7 @@ app.get('/users/:userId', async (req, res) => {
 // อัพเดตข้อมูล user profile
 app.put('/users/:userId', async (req, res) => {
   try {
-    const { productId, productName, employees, currentPassword, newPassword } = req.body;
+    const { ShopName, ShopCode, employees, currentPassword, newPassword } = req.body;
     const user = await User.findById(req.params.userId);
 
     if (!user) {
@@ -582,8 +582,8 @@ app.put('/users/:userId', async (req, res) => {
     }
 
     // อัพเดตข้อมูลอื่นๆ
-    if (productId !== undefined) user.productId = productId;
-    if (productName !== undefined) user.productName = productName;
+    if (ShopCode !== undefined) user.ShopCode = ShopCode;
+    if (ShopName !== undefined) user.ShopName = ShopName;
     if (employees !== undefined) user.employees = employees;
 
     await user.save();

@@ -11,11 +11,11 @@ const UserSchema = new mongoose.Schema({
     type: String, 
     required: true 
   },
-  productId: {
+  ShopCode: {
     type: String,
     required: false
   },
-  productName: {
+  ShopName: {
     type: String,
     required: false
   },
