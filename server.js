@@ -523,6 +523,91 @@ app.use((err, req, res, next) => {
   });
 });
 
+// ดึงข้อมูล user profile
+app.get('/users/:userId', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'ไม่พบผู้ใช้งาน' 
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        email: user.email,
+        productId: user.productId,
+        productName: user.productName,
+        employees: user.employees
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้' 
+    });
+  }
+});
+
+// อัพเดตข้อมูล user profile
+app.put('/users/:userId', async (req, res) => {
+  try {
+    const { productId, productName, employees, currentPassword, newPassword } = req.body;
+    const user = await User.findById(req.params.userId);
+
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'ไม่พบผู้ใช้งาน' 
+      });
+    }
+
+    // ถ้ามีการส่งรหัสผ่านมาเปลี่ยน
+    if (currentPassword && newPassword) {
+      // ตรวจสอบรหัสผ่านปัจจุบัน
+      const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ 
+          success: false, 
+          message: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' 
+        });
+      }
+
+      // เข้ารหัสรหัสผ่านใหม่
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      user.password = hashedPassword;
+    }
+
+    // อัพเดตข้อมูลอื่นๆ
+    if (productId !== undefined) user.productId = productId;
+    if (productName !== undefined) user.productName = productName;
+    if (employees !== undefined) user.employees = employees;
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'อัพเดตข้อมูลสำเร็จ',
+      data: {
+        email: user.email,
+        productId: user.productId,
+        productName: user.productName,
+        employees: user.employees
+      }
+    });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'เกิดข้อผิดพลาดในการอัพเดตข้อมูล' 
+    });
+  }
+});
+
+
 // Server startup
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
