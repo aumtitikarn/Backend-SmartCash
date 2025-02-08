@@ -607,6 +607,7 @@ app.put('/users/:userId', async (req, res) => {
   }
 });
 
+// แก้ไขข้อมูลล็อต
 app.put('/products/:productId', async (req, res) => {
   try {
     const { productId } = req.params;
@@ -642,6 +643,35 @@ app.put('/products/:productId', async (req, res) => {
   }
 });
 
+// ลบล็อตสินค้า
+app.delete('/products/:productId', async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const product = await Product.findById(productId);
+    
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบล็อตสินค้า'
+      });
+    }
+
+    // ลบล็อตสินค้า
+    await Product.findByIdAndDelete(productId);
+
+    res.json({
+      success: true,
+      message: 'ลบล็อตสินค้าสำเร็จ'
+    });
+
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการลบข้อมูล'
+    });
+  }
+});
 
 // Server startup
 const PORT = process.env.PORT || 5000;
