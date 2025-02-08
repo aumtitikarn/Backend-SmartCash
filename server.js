@@ -262,6 +262,93 @@ app.patch('/products/updatebarcode/:productId', async (req, res) => {
   }
 });
 
+//ดึงข้อมูล order ทั้งหมด
+app.get('/dashboard/:monthYear', async (req, res) => {
+  try {
+    const { monthYear } = req.params;
+    const [month, year] = monthYear.split('-').map(Number);
+    
+    // Create date range for the selected month
+    const startDate = new Date(year, month, 1);
+    const endDate = new Date(year, month + 1, 0);
+
+    // Fetch orders for the selected month
+    const orders = await Order.find({
+      orderDate: {
+        $gte: startDate,
+        $lte: endDate
+      }
+    });
+
+    // Fetch all products to get costs
+    const products = await Product.find();
+
+    // Calculate total sales and gather product statistics
+    let totalSales = 0;
+    let totalCost = 0;
+    const productStats = {};
+
+    // Process orders
+    orders.forEach(order => {
+      totalSales += order.totalAmount;
+      
+      // Process each item in the order
+      order.items.forEach(item => {
+        if (!productStats[item.productName]) {
+          productStats[item.productName] = {
+            name: item.productName,
+            category: item.category,
+            totalSales: 0,
+            quantitySold: 0,
+            revenue: 0
+          };
+        }
+        
+        productStats[item.productName].quantitySold += item.quantity;
+        productStats[item.productName].revenue += item.price * item.quantity;
+        productStats[item.productName].totalSales += 1;
+      });
+    });
+
+    // Calculate total cost from products
+    products.forEach(product => {
+      totalCost += product.cost || 0;
+    });
+
+    // Convert productStats object to array and sort by revenue
+    const topProducts = Object.values(productStats)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5); // Get top 5 products
+
+    // Calculate total profit
+    const totalProfit = totalSales - totalCost;
+
+    res.json({
+      success: true,
+      data: {
+        totalSales,
+        totalCost,
+        totalProfit,
+        topProducts,
+        orderCount: orders.length,
+        monthlyStats: {
+          month,
+          year,
+          totalSales,
+          totalProfit
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching dashboard data:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูล Dashboard'
+    });
+  }
+});
+
 app.get('/products', async (req, res) => {
   try {
     const products = await Product.find().sort({ lotDate: -1 });
