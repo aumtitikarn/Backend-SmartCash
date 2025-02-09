@@ -758,6 +758,63 @@ app.put('/products/:productId/item', upload.single('image'), async (req, res) =>
   }
 });
 
+//ลบรายการสินค้า
+app.delete('/products/:productId/item/:itemId', async (req, res) => {
+  try {
+    const { productId, itemId } = req.params;
+
+    // Find the product
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบล็อตสินค้า'
+      });
+    }
+
+    // Find the product item index
+    const itemIndex = product.listProduct.findIndex(
+      item => item._id.toString() === itemId
+    );
+
+    if (itemIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบสินค้าที่ต้องการลบ'
+      });
+    }
+
+    // Get the item to access its image ID before removal
+    const itemToDelete = product.listProduct[itemIndex];
+
+    // Remove the item from the array
+    product.listProduct.splice(itemIndex, 1);
+    await product.save();
+
+    // Delete the associated image if it exists
+    if (itemToDelete.image) {
+      try {
+        await gfs.delete(new mongoose.Types.ObjectId(itemToDelete.image));
+      } catch (deleteError) {
+        console.error('Error deleting image:', deleteError);
+        // Continue execution even if image deletion fails
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'ลบสินค้าสำเร็จ'
+    });
+
+  } catch (error) {
+    console.error('Error deleting product item:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการลบสินค้า'
+    });
+  }
+});
+
 // Server startup
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
