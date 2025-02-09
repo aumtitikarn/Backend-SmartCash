@@ -673,6 +673,91 @@ app.delete('/products/:productId', async (req, res) => {
   }
 });
 
+//แก้ไขรายการสินค้า
+app.put('/products/:productId/item', upload.single('image'), async (req, res) => {
+  let uploadStream;
+  try {
+    const { productId } = req.params;
+    const { productName, category, price, quantity, productItemId } = req.body;
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบล็อตสินค้า'
+      });
+    }
+
+    // Find the product item to update
+    const productItem = product.listProduct.id(productItemId);
+    if (!productItem) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบสินค้าที่ต้องการแก้ไข'
+      });
+    }
+
+    // Handle image upload if a new image is provided
+    let imageId = productItem.image; // Keep existing image by default
+    if (req.file) {
+      // Upload new image
+      const filename = `${Date.now()}-${req.file.originalname}`;
+      uploadStream = gfs.openUploadStream(filename, {
+        contentType: req.file.mimetype
+      });
+      imageId = uploadStream.id;
+
+      await new Promise((resolve, reject) => {
+        uploadStream.on('finish', resolve);
+        uploadStream.on('error', reject);
+        uploadStream.end(req.file.buffer);
+      });
+
+      // Delete old image if it exists
+      if (productItem.image) {
+        try {
+          await gfs.delete(new mongoose.Types.ObjectId(productItem.image));
+        } catch (deleteError) {
+          console.error('Error deleting old image:', deleteError);
+        }
+      }
+    }
+
+    // Update product item fields
+    productItem.name = productName;
+    productItem.category = category;
+    productItem.price = Number(price);
+    productItem.quantity = Number(quantity);
+    if (imageId) {
+      productItem.image = imageId;
+    }
+
+    await product.save();
+
+    res.json({
+      success: true,
+      message: 'อัพเดตข้อมูลสินค้าสำเร็จ',
+      data: product
+    });
+
+  } catch (error) {
+    // Handle cleanup if image upload failed
+    if (uploadStream && uploadStream.id) {
+      try {
+        await gfs.delete(uploadStream.id);
+      } catch (deleteError) {
+        console.error('Error deleting failed upload:', deleteError);
+      }
+    }
+
+    console.error('Error updating product item:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'เกิดข้อผิดพลาดในการอัพเดตข้อมูล'
+    });
+  }
+});
+
 // Server startup
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
