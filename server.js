@@ -15,7 +15,7 @@ app.use(express.json());
 
 // MongoDB Connection - ใช้การเชื่อมต่อแบบที่ทำงานได้
 mongoose
-  .connect('mongodb+srv://aumtitikarn003:16250734925Aum@digitechspace.woy4von.mongodb.net/SmartCash?retryWrites=true&w=majority', {
+  .connect('mongodb+srv://poopoqr2:Wowo303030@cluster0.dzux1.mongodb.net/SmartCash?retryWrites=true&w=majority', {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
