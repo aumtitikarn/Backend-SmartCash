@@ -26,7 +26,7 @@ mongoose
 let gfs;
 const initializeGridFS = async () => {
   try {
-    const client = await MongoClient.connect('mongodb+srv://aumtitikarn003:16250734925Aum@digitechspace.woy4von.mongodb.net/SmartCash?retryWrites=true&w=majority');
+    const client = await MongoClient.connect('mongodb+srv://poopoqr2:Wowo303030@cluster0.dzux1.mongodb.net/SmartCash?retryWrites=true&w=majority');
     const db = client.db();
     gfs = new GridFSBucket(db, {
       bucketName: 'uploads'
