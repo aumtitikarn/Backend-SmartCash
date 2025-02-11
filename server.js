@@ -359,6 +359,30 @@ app.get('/dashboard/:monthYear', async (req, res) => {
   }
 });
 
+app.get('/orders', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const orders = await Order.find()
+      .sort({ orderDate: -1 }) // Sort by most recent first
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      success: true,
+      data: orders
+    });
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการดึงข้อมูลออเดอร์'
+    });
+  }
+});
+
 app.get('/products', async (req, res) => {
   try {
     const products = await Product.find().sort({ lotDate: -1 });
