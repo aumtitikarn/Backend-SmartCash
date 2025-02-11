@@ -269,16 +269,16 @@ app.get('/dashboard/:monthYear', async (req, res) => {
   try {
     const { monthYear } = req.params;
     const [month, year] = monthYear.split('-').map(Number);
-
+    
     // Create date range for the selected month
     const startDate = new Date(year, month, 1);
     const endDate = new Date(year, month + 1, 0);
-
-    // Get today's date range (start of day to end of day)
-    const today = new Date();
-    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
-
+    
+    // Calculate start and end of the selected day
+    const selectedDate = new Date(year, month, startDate.getDate());
+    const selectedDayStart = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+    const selectedDayEnd = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 23, 59, 59);
+    
     // Fetch orders for the selected month
     const orders = await Order.find({
       orderDate: {
@@ -286,22 +286,22 @@ app.get('/dashboard/:monthYear', async (req, res) => {
         $lte: endDate
       }
     });
-
-    // Fetch today's orders
-    const todayOrders = await Order.find({
+    
+    // Fetch orders for the selected day
+    const selectedDayOrders = await Order.find({
       orderDate: {
-        $gte: todayStart,
-        $lte: todayEnd
+        $gte: selectedDayStart,
+        $lte: selectedDayEnd
       }
     });
-
-    // Fetch all products to get costs
-    const products = await Product.find();
-
-    // Calculate total sales and gather product statistics
+    
+    // Calculate daily sales for the selected day
+    let dailySales = 0;
+    selectedDayOrders.forEach(order => {
+      dailySales += order.totalAmount;
+    });
     let totalSales = 0;
     let totalCost = 0;
-    let dailySales = 0; // เพิ่มตัวแปรสำหรับยอดขายรายวัน
     const productStats = {};
 
     // Calculate daily sales
