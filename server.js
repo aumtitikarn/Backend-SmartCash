@@ -90,118 +90,89 @@ app.get('/images/:id', async (req, res) => {
 
 //เพิ่มข้อมูลตะกร้าสินค้า
 app.post('/orders', async (req, res) => {
-  try {
-    console.log('Received data:', req.body);
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
+  try {
+    console.log('Received order data:', req.body);
     const { items, totalAmount } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
-      console.error('Invalid items data:', items);
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid items data'
-      });
+      throw new Error('ข้อมูลรายการสินค้าไม่ถูกต้อง');
     }
 
-    // Transform items and validate all required fields
-    const transformedItems = items.map((item, index) => {
-      // Check all required fields
-      const requiredFields = ['name', 'quantity', 'price', 'category', 'barcode', 'image'];
-      const missingFields = requiredFields.filter(field => !item[field]);
+    // ตรวจสอบและอัพเดทจำนวนสินค้าทั้งหมดก่อน
+    for (const item of items) {
+      const product = await Product.findOne({
+        "listProduct._id": item.barcode
+      }).session(session);
 
-      if (missingFields.length > 0) {
-        throw new Error(`Missing required fields: ${missingFields.join(', ')} in item ${index + 1}`);
+      if (!product) {
+        throw new Error(`ไม่พบสินค้า: ${item.name}`);
       }
 
-      if (item.quantity < 1) {
-        throw new Error(`Invalid quantity for item ${index + 1}: ${item.name}`);
+      const productItem = product.listProduct.find(
+        p => p._id.toString() === item.barcode
+      );
+
+      if (!productItem) {
+        throw new Error(`ไม่พบข้อมูลสินค้า: ${item.name}`);
       }
 
-      return {
+      if (productItem.quantity < item.quantity) {
+        throw new Error(
+          `สินค้า ${item.name} มีไม่เพียงพอ (เหลือ ${productItem.quantity}, ต้องการ ${item.quantity})`
+        );
+      }
+
+      // อัพเดทจำนวนสินค้า
+      productItem.quantity -= item.quantity;
+      await product.save({ session });
+    }
+
+    // สร้าง order
+    const order = new Order({
+      items: items.map(item => ({
         productName: item.name,
         quantity: item.quantity,
         price: item.price,
         category: item.category,
         barcode: item.barcode,
         image: item.image
-      };
+      })),
+      totalAmount,
+      orderDate: new Date()
     });
 
-    // อัพเดตจำนวนสินค้าในฐานข้อมูล
-    for (const item of transformedItems) {
-      // ค้นหาสินค้าที่ต้องการอัพเดต
-      const product = await Product.findOne({
-        "listProduct._id": item.barcode
-      });
+    await order.save({ session });
+    await session.commitTransaction();
 
-      if (!product) {
-        throw new Error(`Product not found with barcode: ${item.barcode}`);
-      }
-
-      // หาสินค้าใน listProduct
-      const productItem = product.listProduct.find(
-        p => p._id.toString() === item.barcode
-      );
-
-      if (!productItem) {
-        throw new Error(`Product item not found in lot with barcode: ${item.barcode}`);
-      }
-
-      // ตรวจสอบว่ามีสินค้าเพียงพอหรือไม่
-      if (productItem.quantity < item.quantity) {
-        throw new Error(
-          `Insufficient stock for ${item.productName}. Available: ${productItem.quantity}, Requested: ${item.quantity}`
-        );
-      }
-
-      // อัพเดตจำนวนสินค้า
-      productItem.quantity -= item.quantity;
-
-      // บันทึกการเปลี่ยนแปลง
-      await product.save();
-    }
-
-    console.log('Transformed items:', transformedItems);
-
-    // Create and save order
-    const order = new Order({
-      items: transformedItems,
-      totalAmount
-    });
-
-    console.log('Order before save:', order);
-
-    const savedOrder = await order.save();
-    console.log('Order saved successfully:', savedOrder._id);
+    console.log('Order saved successfully:', order._id);
 
     res.status(201).json({
       success: true,
-      data: savedOrder
+      data: order
     });
 
   } catch (error) {
-    console.error('Error details:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    });
+    await session.abortTransaction();
+    console.error('Error creating order:', error);
 
-    // ส่งข้อความ error ที่เหมาะสมกลับไป
     let statusCode = 500;
     let errorMessage = error.message;
 
-    if (error.message.includes('Missing required fields')) {
+    if (error.message.includes('ไม่พบสินค้า') || 
+        error.message.includes('มีไม่เพียงพอ') ||
+        error.message.includes('ข้อมูลรายการสินค้าไม่ถูกต้อง')) {
       statusCode = 400;
-    } else if (error.message.includes('Insufficient stock')) {
-      statusCode = 400;
-    } else if (error.message.includes('Product not found')) {
-      statusCode = 404;
     }
 
     res.status(statusCode).json({
       success: false,
       error: errorMessage
     });
+  } finally {
+    session.endSession();
   }
 });
 
@@ -234,67 +205,6 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// อัพเดตจำนวนสินค้า endpoint
-app.patch('/products/updateQuantity/:barcode', async (req, res) => {
-  try {
-    const { barcode } = req.params;
-    const { quantity } = req.body;
-
-    // ค้นหาสินค้าโดยใช้ barcode
-    const product = await Product.findOne({
-      "listProduct._id": barcode
-    });
-
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: `ไม่พบสินค้าที่มีบาร์โค้ด ${barcode}`
-      });
-    }
-
-    // ค้นหาสินค้าใน listProduct array
-    const productItem = product.listProduct.find(
-      item => item._id.toString() === barcode
-    );
-
-    if (!productItem) {
-      return res.status(404).json({
-        success: false,
-        message: `ไม่พบสินค้าในรายการ`
-      });
-    }
-
-    // ตรวจสอบว่ามีสินค้าเพียงพอ
-    if (productItem.quantity < quantity) {
-      return res.status(400).json({
-        success: false,
-        message: `สินค้า ${productItem.name} มีไม่เพียงพอ (เหลือ ${productItem.quantity} ชิ้น, ต้องการ ${quantity} ชิ้น)`
-      });
-    }
-
-    // อัพเดตจำนวนสินค้า
-    productItem.quantity -= quantity;
-
-    // บันทึกการเปลี่ยนแปลง
-    await product.save();
-
-    res.json({
-      success: true,
-      data: {
-        updatedQuantity: productItem.quantity,
-        productName: productItem.name
-      }
-    });
-
-  } catch (error) {
-    console.error('Error updating product quantity:', error);
-    res.status(500).json({
-      success: false,
-      message: 'เกิดข้อผิดพลาดในการอัพเดตจำนวนสินค้า',
-      error: error.message
-    });
-  }
-});
 
 // Product Routes
 app.post('/products', async (req, res) => {
