@@ -264,7 +264,6 @@ app.patch('/products/updatebarcode/:productId', async (req, res) => {
   }
 });
 
-//ดึงข้อมูล order ทั้งหมด
 app.get('/dashboard/:monthYear', async (req, res) => {
   try {
     const { monthYear } = req.params;
@@ -289,10 +288,18 @@ app.get('/dashboard/:monthYear', async (req, res) => {
     let totalSales = 0;
     let totalCost = 0;
     const productStats = {};
+    
+    // เพิ่มการคำนวณรายวัน
+    const dailySales = {};
 
     // Process orders
     orders.forEach(order => {
       totalSales += order.totalAmount;
+      
+      // คำนวณยอดขายรายวัน
+      const orderDate = new Date(order.orderDate);
+      const dayKey = orderDate.getDate();
+      dailySales[dayKey] = (dailySales[dayKey] || 0) + order.totalAmount;
       
       // Process each item in the order
       order.items.forEach(item => {
@@ -331,6 +338,7 @@ app.get('/dashboard/:monthYear', async (req, res) => {
         totalSales,
         totalCost,
         totalProfit,
+        dailySales, // เพิ่ม dailySales เป็นออบเจ็กต์
         topProducts,
         orderCount: orders.length,
         monthlyStats: {
