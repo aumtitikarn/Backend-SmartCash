@@ -366,13 +366,15 @@ app.get('/orders', async (req, res) => {
     const skip = (page - 1) * limit;
 
     const orders = await Order.find()
-      .sort({ orderDate: -1 }) // Sort by most recent first
+      .sort({ orderDate: -1 }) // เรียงจากล่าสุดไปเก่าสุด
       .skip(skip)
       .limit(limit);
 
     res.json({
       success: true,
-      data: orders
+      data: orders,
+      page,
+      totalOrders: await Order.countDocuments()
     });
   } catch (error) {
     console.error('Error fetching orders:', error);
