@@ -273,12 +273,7 @@ app.get('/dashboard/:monthYear', async (req, res) => {
     // Create date range for the selected month
     const startDate = new Date(year, month, 1);
     const endDate = new Date(year, month + 1, 0);
-    
-    // Calculate start and end of the selected day
-    const selectedDate = new Date(year, month, startDate.getDate());
-    const selectedDayStart = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
-    const selectedDayEnd = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 23, 59, 59);
-    
+
     // Fetch orders for the selected month
     const orders = await Order.find({
       orderDate: {
@@ -286,33 +281,19 @@ app.get('/dashboard/:monthYear', async (req, res) => {
         $lte: endDate
       }
     });
-    
-    // Fetch orders for the selected day
-    const selectedDayOrders = await Order.find({
-      orderDate: {
-        $gte: selectedDayStart,
-        $lte: selectedDayEnd
-      }
-    });
-    
-    // Calculate daily sales for the selected day
-    let dailySales = 0;
-    selectedDayOrders.forEach(order => {
-      dailySales += order.totalAmount;
-    });
+
+    // Fetch all products to get costs
+    const products = await Product.find();
+
+    // Calculate total sales and gather product statistics
     let totalSales = 0;
     let totalCost = 0;
     const productStats = {};
 
-    // Calculate daily sales
-    todayOrders.forEach(order => {
-      dailySales += order.totalAmount;
-    });
-
-    // Process monthly orders
+    // Process orders
     orders.forEach(order => {
       totalSales += order.totalAmount;
-
+      
       // Process each item in the order
       order.items.forEach(item => {
         if (!productStats[item.productName]) {
@@ -324,7 +305,7 @@ app.get('/dashboard/:monthYear', async (req, res) => {
             revenue: 0
           };
         }
-
+        
         productStats[item.productName].quantitySold += item.quantity;
         productStats[item.productName].revenue += item.price * item.quantity;
         productStats[item.productName].totalSales += 1;
@@ -350,7 +331,6 @@ app.get('/dashboard/:monthYear', async (req, res) => {
         totalSales,
         totalCost,
         totalProfit,
-        dailySales, // เพิ่ม dailySales ในการส่งข้อมูล
         topProducts,
         orderCount: orders.length,
         monthlyStats: {
