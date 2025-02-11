@@ -234,12 +234,13 @@ app.post('/login', async (req, res) => {
   }
 });
 
+// อัพเดตจำนวนสินค้า endpoint
 app.patch('/products/updateQuantity/:barcode', async (req, res) => {
   try {
     const { barcode } = req.params;
     const { quantity } = req.body;
 
-    // ค้นหาสินค้าที่ต้องการอัพเดต
+    // ค้นหาสินค้าโดยใช้ barcode
     const product = await Product.findOne({
       "listProduct._id": barcode
     });
@@ -247,11 +248,11 @@ app.patch('/products/updateQuantity/:barcode', async (req, res) => {
     if (!product) {
       return res.status(404).json({
         success: false,
-        message: 'ไม่พบสินค้า'
+        message: `ไม่พบสินค้าที่มีบาร์โค้ด ${barcode}`
       });
     }
 
-    // หาสินค้าใน listProduct
+    // ค้นหาสินค้าใน listProduct array
     const productItem = product.listProduct.find(
       item => item._id.toString() === barcode
     );
@@ -259,15 +260,15 @@ app.patch('/products/updateQuantity/:barcode', async (req, res) => {
     if (!productItem) {
       return res.status(404).json({
         success: false,
-        message: 'ไม่พบสินค้าในรายการ'
+        message: `ไม่พบสินค้าในรายการ`
       });
     }
 
-    // ตรวจสอบว่ามีสินค้าเพียงพอหรือไม่
+    // ตรวจสอบว่ามีสินค้าเพียงพอ
     if (productItem.quantity < quantity) {
       return res.status(400).json({
         success: false,
-        message: `สินค้าในสต็อกไม่เพียงพอ (เหลือ ${productItem.quantity} ชิ้น)`
+        message: `สินค้า ${productItem.name} มีไม่เพียงพอ (เหลือ ${productItem.quantity} ชิ้น, ต้องการ ${quantity} ชิ้น)`
       });
     }
 
@@ -279,15 +280,18 @@ app.patch('/products/updateQuantity/:barcode', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'อัพเดตจำนวนสินค้าสำเร็จ',
-      remainingQuantity: productItem.quantity
+      data: {
+        updatedQuantity: productItem.quantity,
+        productName: productItem.name
+      }
     });
 
   } catch (error) {
-    console.error('Error updating quantity:', error);
+    console.error('Error updating product quantity:', error);
     res.status(500).json({
       success: false,
-      message: 'เกิดข้อผิดพลาดในการอัพเดตจำนวนสินค้า'
+      message: 'เกิดข้อผิดพลาดในการอัพเดตจำนวนสินค้า',
+      error: error.message
     });
   }
 });
