@@ -360,15 +360,23 @@ app.get('/dashboard/:monthYear', async (req, res) => {
 });
 
 app.get('/orders', async (req, res) => {
+  // เพิ่ม console.log เพื่อตรวจสอบการเรียก route
+  console.log('Request received at /orders');
+  console.log('Query parameters:', req.query);
+
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
+    console.log('Page:', page, 'Limit:', limit, 'Skip:', skip);
+
     const orders = await Order.find()
-      .sort({ orderDate: -1 }) // เรียงจากล่าสุดไปเก่าสุด
+      .sort({ orderDate: -1 }) 
       .skip(skip)
       .limit(limit);
+
+    console.log('Found orders:', orders.length);
 
     res.json({
       success: true,
@@ -377,7 +385,7 @@ app.get('/orders', async (req, res) => {
       totalOrders: await Order.countDocuments()
     });
   } catch (error) {
-    console.error('Error fetching orders:', error);
+    console.error('Error in /orders route:', error);
     res.status(500).json({
       success: false,
       message: 'เกิดข้อผิดพลาดในการดึงข้อมูลออเดอร์'
