@@ -127,6 +127,40 @@ app.post('/orders', async (req, res) => {
       };
     });
 
+    // อัพเดตจำนวนสินค้าในฐานข้อมูล
+    for (const item of transformedItems) {
+      // ค้นหาสินค้าที่ต้องการอัพเดต
+      const product = await Product.findOne({
+        "listProduct._id": item.barcode
+      });
+
+      if (!product) {
+        throw new Error(`Product not found with barcode: ${item.barcode}`);
+      }
+
+      // หาสินค้าใน listProduct
+      const productItem = product.listProduct.find(
+        p => p._id.toString() === item.barcode
+      );
+
+      if (!productItem) {
+        throw new Error(`Product item not found in lot with barcode: ${item.barcode}`);
+      }
+
+      // ตรวจสอบว่ามีสินค้าเพียงพอหรือไม่
+      if (productItem.quantity < item.quantity) {
+        throw new Error(
+          `Insufficient stock for ${item.productName}. Available: ${productItem.quantity}, Requested: ${item.quantity}`
+        );
+      }
+
+      // อัพเดตจำนวนสินค้า
+      productItem.quantity -= item.quantity;
+
+      // บันทึกการเปลี่ยนแปลง
+      await product.save();
+    }
+
     console.log('Transformed items:', transformedItems);
 
     // Create and save order
@@ -152,25 +186,21 @@ app.post('/orders', async (req, res) => {
       name: error.name
     });
 
+    // ส่งข้อความ error ที่เหมาะสมกลับไป
+    let statusCode = 500;
+    let errorMessage = error.message;
+
     if (error.message.includes('Missing required fields')) {
-      return res.status(400).json({
-        success: false,
-        error: error.message
-      });
+      statusCode = 400;
+    } else if (error.message.includes('Insufficient stock')) {
+      statusCode = 400;
+    } else if (error.message.includes('Product not found')) {
+      statusCode = 404;
     }
 
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({
-        success: false,
-        error: 'ข้อมูลไม่ถูกต้องตามรูปแบบที่กำหนด',
-        details: error.message
-      });
-    }
-
-    res.status(500).json({
+    res.status(statusCode).json({
       success: false,
-      error: 'ไม่สามารถบันทึกคำสั่งซื้อได้',
-      details: error.message
+      error: errorMessage
     });
   }
 });
@@ -359,7 +389,7 @@ app.get('/products', async (req, res) => {
   }
 });
 
-// เพิ่มสินค้าพร้อมรูปภาพ
+// เพิ่มรายการสินค้า
 app.post('/addproducts/:productId', upload.single('image'), async (req, res) => {
   let uploadStream;
   try {
