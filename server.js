@@ -269,10 +269,15 @@ app.get('/dashboard/:monthYear', async (req, res) => {
   try {
     const { monthYear } = req.params;
     const [month, year] = monthYear.split('-').map(Number);
-    
+
     // Create date range for the selected month
     const startDate = new Date(year, month, 1);
     const endDate = new Date(year, month + 1, 0);
+
+    // Get today's date range (start of day to end of day)
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
 
     // Fetch orders for the selected month
     const orders = await Order.find({
@@ -282,18 +287,32 @@ app.get('/dashboard/:monthYear', async (req, res) => {
       }
     });
 
+    // Fetch today's orders
+    const todayOrders = await Order.find({
+      orderDate: {
+        $gte: todayStart,
+        $lte: todayEnd
+      }
+    });
+
     // Fetch all products to get costs
     const products = await Product.find();
 
     // Calculate total sales and gather product statistics
     let totalSales = 0;
     let totalCost = 0;
+    let dailySales = 0; // เพิ่มตัวแปรสำหรับยอดขายรายวัน
     const productStats = {};
 
-    // Process orders
+    // Calculate daily sales
+    todayOrders.forEach(order => {
+      dailySales += order.totalAmount;
+    });
+
+    // Process monthly orders
     orders.forEach(order => {
       totalSales += order.totalAmount;
-      
+
       // Process each item in the order
       order.items.forEach(item => {
         if (!productStats[item.productName]) {
@@ -305,7 +324,7 @@ app.get('/dashboard/:monthYear', async (req, res) => {
             revenue: 0
           };
         }
-        
+
         productStats[item.productName].quantitySold += item.quantity;
         productStats[item.productName].revenue += item.price * item.quantity;
         productStats[item.productName].totalSales += 1;
@@ -331,6 +350,7 @@ app.get('/dashboard/:monthYear', async (req, res) => {
         totalSales,
         totalCost,
         totalProfit,
+        dailySales, // เพิ่ม dailySales ในการส่งข้อมูล
         topProducts,
         orderCount: orders.length,
         monthlyStats: {
