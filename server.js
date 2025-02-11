@@ -234,6 +234,64 @@ app.post('/login', async (req, res) => {
   }
 });
 
+app.patch('/products/updateQuantity/:barcode', async (req, res) => {
+  try {
+    const { barcode } = req.params;
+    const { quantity } = req.body;
+
+    // ค้นหาสินค้าที่ต้องการอัพเดต
+    const product = await Product.findOne({
+      "listProduct._id": barcode
+    });
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบสินค้า'
+      });
+    }
+
+    // หาสินค้าใน listProduct
+    const productItem = product.listProduct.find(
+      item => item._id.toString() === barcode
+    );
+
+    if (!productItem) {
+      return res.status(404).json({
+        success: false,
+        message: 'ไม่พบสินค้าในรายการ'
+      });
+    }
+
+    // ตรวจสอบว่ามีสินค้าเพียงพอหรือไม่
+    if (productItem.quantity < quantity) {
+      return res.status(400).json({
+        success: false,
+        message: `สินค้าในสต็อกไม่เพียงพอ (เหลือ ${productItem.quantity} ชิ้น)`
+      });
+    }
+
+    // อัพเดตจำนวนสินค้า
+    productItem.quantity -= quantity;
+
+    // บันทึกการเปลี่ยนแปลง
+    await product.save();
+
+    res.json({
+      success: true,
+      message: 'อัพเดตจำนวนสินค้าสำเร็จ',
+      remainingQuantity: productItem.quantity
+    });
+
+  } catch (error) {
+    console.error('Error updating quantity:', error);
+    res.status(500).json({
+      success: false,
+      message: 'เกิดข้อผิดพลาดในการอัพเดตจำนวนสินค้า'
+    });
+  }
+});
+
 // Product Routes
 app.post('/products', async (req, res) => {
   console.log('Request body:', req.body);
